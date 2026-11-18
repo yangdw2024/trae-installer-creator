@@ -56,8 +56,8 @@ fn run() -> Result<()> {
         if !silent {
             msg_box(
                 null_mut(),
-                "Trae Native Setup Stub v3.0",
-                "这是一个纯净的 Trae 原生安装包运行时底座（Native Stub）。\n请使用 TraeCC 或 Trae Studio 将其打包为单文件安装程序。",
+                "ForgePack Native Setup Stub v3.0",
+                "这是一个纯净的 ForgePack 原生安装包运行时底座（Native Stub）。\n请使用 forgecc 或 forge-studio 将其打包为单文件安装程序。",
                 MB_OK | MB_ICONINFORMATION,
             );
         }

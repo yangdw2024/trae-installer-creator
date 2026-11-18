@@ -8,7 +8,7 @@ def _bin_path(exe_name: str) -> str:
 
 
 def main_cc() -> None:
-    exe = _bin_path("traecc.exe")
+    exe = _bin_path("forgecc.exe")
     if not os.path.isfile(exe):
         print(f"Error: {exe} not found.", file=sys.stderr)
         sys.exit(1)
@@ -17,7 +17,7 @@ def main_cc() -> None:
 
 
 def main_studio() -> None:
-    exe = _bin_path("trae-studio.exe")
+    exe = _bin_path("forge-studio.exe")
     if not os.path.isfile(exe):
         print(f"Error: {exe} not found.", file=sys.stderr)
         sys.exit(1)

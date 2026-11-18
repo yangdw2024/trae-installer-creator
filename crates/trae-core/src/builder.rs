@@ -27,35 +27,27 @@ impl InstallerBuilder {
         if let Some(p) = explicit {
             candidates.push(p.to_path_buf());
         }
-        if let Ok(curr_exe) = std::env::current_exe() {
-            if let Some(exe_dir) = curr_exe.parent() {
-                candidates.push(exe_dir.join("trae-stub.exe"));
-                candidates.push(exe_dir.join("runtime").join("trae-stub.exe"));
-                candidates.push(exe_dir.join("release").join("trae-stub.exe"));
+        for stub_name in ["forge-stub.exe", "trae-stub.exe"] {
+            if let Ok(curr_exe) = std::env::current_exe() {
+                if let Some(exe_dir) = curr_exe.parent() {
+                    candidates.push(exe_dir.join(stub_name));
+                    candidates.push(exe_dir.join("runtime").join(stub_name));
+                    candidates.push(exe_dir.join("release").join(stub_name));
+                }
             }
+            if let Ok(cwd) = std::env::current_dir() {
+                candidates.push(cwd.join(stub_name));
+                candidates.push(cwd.join("target").join("release").join(stub_name));
+                candidates.push(cwd.join("target").join("debug").join(stub_name));
+                candidates.push(cwd.join("release").join(stub_name));
+            }
+            let manifest_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .join("..");
+            candidates.push(manifest_root.join("target").join("release").join(stub_name));
+            candidates.push(manifest_root.join("target").join("debug").join(stub_name));
+            candidates.push(manifest_root.join("release").join(stub_name));
         }
-        if let Ok(cwd) = std::env::current_dir() {
-            candidates.push(cwd.join("trae-stub.exe"));
-            candidates.push(cwd.join("target").join("release").join("trae-stub.exe"));
-            candidates.push(cwd.join("target").join("debug").join("trae-stub.exe"));
-            candidates.push(cwd.join("release").join("trae-stub.exe"));
-        }
-        let manifest_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("..")
-            .join("..");
-        candidates.push(
-            manifest_root
-                .join("target")
-                .join("release")
-                .join("trae-stub.exe"),
-        );
-        candidates.push(
-            manifest_root
-                .join("target")
-                .join("debug")
-                .join("trae-stub.exe"),
-        );
-        candidates.push(manifest_root.join("release").join("trae-stub.exe"));
 
         for c in &candidates {
             if c.is_file() {

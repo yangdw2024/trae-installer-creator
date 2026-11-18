@@ -5,6 +5,10 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 
+[[bin]]
+name = "forge-studio"
+path = "src/main.rs"
+
 [dependencies]
 anyhow.workspace = true
 trae-core = { path = "../trae-core" }

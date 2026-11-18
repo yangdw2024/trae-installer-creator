@@ -3,18 +3,17 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "trae-installer-creator"
+name = "forgepack"
 version = "3.0.0"
-description = "Native Rust single-file Windows installer builder compatible with Inno Setup (.iss) scripts"
+description = "ForgePack - Native Rust single-file Windows installer builder compatible with Inno Setup (.iss) scripts"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.8"
-authors = [{ name = "Trae", email = "yangdw2021@gmail.com" }]
-keywords = ["installer", "setup", "inno-setup", "windows", "packaging", "rust"]
+authors = [{ name = "ForgePack", email = "yangdw2021@gmail.com" }]
+keywords = ["installer", "setup", "inno-setup", "windows", "packaging", "rust", "forgepack"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Win32 (MS Windows)",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: Microsoft :: Windows",
     "Programming Language :: Rust",
     "Programming Language :: Python :: 3",
@@ -26,8 +25,8 @@ Homepage = "https://github.com/yangdw2024/trae-installer-creator"
 Repository = "https://github.com/yangdw2024/trae-installer-creator"
 
 [project.scripts]
-traecc = "trae_installer.cli:main_cc"
-trae-studio = "trae_installer.cli:main_studio"
+forgecc = "trae_installer.cli:main_cc"
+forge-studio = "trae_installer.cli:main_studio"
 
 [tool.setuptools.packages.find]
 include = ["trae_installer*"]

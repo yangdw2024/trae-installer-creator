@@ -1,19 +1,18 @@
-# Trae Installer Creator v3.0
+# ForgePack v3.0
 
 A fast, native Rust Windows single-file installer builder compatible with Inno Setup (`.iss`) scripts.
 
-## Architecture (Rust Workspace)
+## Features
 
-- `crates/trae-core`: `.iss` AST parser/generator, path constant expander, 32-byte EOF footer (`TRAESET3` / `TRAEUNI3`), solid zlib stream packer/extractor with CRC32 verification, and single-file `.exe` builder.
-- `crates/trae-stub`: Ultra-small (~454 KB) native Win32 single-file installer & self-deleting uninstaller (`unins000.exe`), supporting 5-step high-DPI GUI wizard and `/SILENT` + `/DIR="..."` automation.
-- `crates/traecc`: Native CLI compiler (`traecc.exe`).
-- `crates/trae-studio`: Native Win32 GUI IDE (`trae-studio.exe`) with bidirectional `.iss` script sync.
+- **Ultra-Small Single-File Stub (`forge-stub.exe`)**: ~460 KB native Win32 runtime with zero external dependencies, custom icon, PerMonitorV2 high-DPI 5-step wizard, `/SILENT` + `/DIR="..."` automation, and self-deleting uninstaller (`unins000.exe`).
+- **Native CLI Compiler (`forgecc.exe`)**: Millisecond `.iss` compilation with solid zlib streaming & CRC32 verification.
+- **Native GUI IDE (`forge-studio.exe`)**: 5-tab Win32 studio with smart folder import and bidirectional `.iss` script synchronization.
 
 ## Quick Start
 
 ```bash
 # Compile an .iss script into a single-file Setup.exe
-traecc examples/MyProgram.iss -O output -F MySetup
+forgecc examples/MyProgram.iss -O output -F MySetup
 
 # Silent installation
 MySetup.exe /SILENT /DIR="C:\MyApp"

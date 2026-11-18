@@ -6,8 +6,8 @@ use trae_core::{InstallerBuilder, IssParser};
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "traecc",
-    about = "Trae Installer Creator Native Command-Line Compiler v3.0",
+    name = "forgecc",
+    about = "ForgePack Native Command-Line Compiler v3.0",
     disable_version_flag = true
 )]
 struct Cli {
@@ -49,7 +49,7 @@ fn run(cli: Cli) -> Result<()> {
     }
 
     if !cli.quiet {
-        println!("Trae Installer Creator Native Compiler v3.0 (Rust)");
+        println!("ForgePack Native Compiler v3.0 (Rust)");
         println!("Compiling script: {}", cli.script.display());
     }
 

@@ -1,14 +1,15 @@
 {
-  "name": "@yangdw2024/trae-installer-creator",
+  "name": "@yangdw2024/forgepack",
   "version": "3.0.0",
-  "description": "Native Rust single-file Windows installer builder compatible with Inno Setup (.iss) scripts",
+  "description": "ForgePack - Native Rust single-file Windows installer builder compatible with Inno Setup (.iss) scripts",
   "bin": {
-    "traecc": "bin/traecc.js",
-    "trae-studio": "bin/trae-studio.js"
+    "forgecc": "bin/forgecc.js",
+    "forge-studio": "bin/forge-studio.js"
   },
   "os": ["win32"],
   "cpu": ["x64"],
   "keywords": [
+    "forgepack",
     "installer",
     "setup",
     "inno-setup",
@@ -16,11 +17,11 @@
     "rust",
     "cli"
   ],
-  "author": "Trae",
+  "author": "ForgePack",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yangdw2024/trae-installer-creator.git"
+    "url": "git+https://github.com/yangdw2024/trae-installer-creator.git"
   },
   "publishConfig": {
     "access": "public"

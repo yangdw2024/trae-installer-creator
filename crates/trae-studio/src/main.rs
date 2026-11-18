@@ -200,7 +200,7 @@ fn main() {
         });
         let state_ptr = Box::into_raw(state);
 
-        let title = to_wide("Trae Studio v3.0 — 原生单文件安装包制作工具 (Rust)");
+        let title = to_wide("ForgePack Studio v3.0 — 原生单文件安装包制作工具");
         let hwnd = CreateWindowExW(
             0,
             cls_name.as_ptr(),
@@ -364,7 +364,7 @@ unsafe fn paint_chrome(hdc: HDC, state: &StudioState) {
     SetBkMode(hdc, TRANSPARENT as i32);
     SetTextColor(hdc, 0x00FFFFFF);
 
-    let title = to_wide("Trae Studio v3.0 — 原生单文件安装包制作工具");
+    let title = to_wide("ForgePack Studio v3.0 — 原生单文件安装包制作工具");
     let mut tr = RECT {
         left: 20,
         top: 14,
