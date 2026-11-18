@@ -1,0 +1,350 @@
+use crate::model::{FileEntry, IconEntry, RegistryEntry, RunEntry, SetupScript};
+use anyhow::Result;
+use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SectionKind {
+    Setup,
+    License,
+    Files,
+    Icons,
+    Registry,
+    Run,
+    Unknown,
+}
+
+pub struct IssParser;
+
+impl IssParser {
+    pub fn parse_file(path: &Path) -> Result<SetupScript> {
+        let content = fs::read_to_string(path)?;
+        Self::parse_str(&content)
+    }
+
+    pub fn parse_str(input: &str) -> Result<SetupScript> {
+        let content = input.trim_start_matches('\u{feff}');
+        let mut script = SetupScript::default();
+        let mut current = SectionKind::Unknown;
+
+        for raw_line in content.lines() {
+            let line = raw_line.trim();
+            if line.is_empty() || line.starts_with(';') || line.starts_with("//") {
+                continue;
+            }
+
+            if line.starts_with('[') {
+                if let Some(end) = line.find(']') {
+                    let name = line[1..end].trim().to_ascii_lowercase();
+                    current = match name.as_str() {
+                        "setup" => SectionKind::Setup,
+                        "license" => SectionKind::License,
+                        "files" => SectionKind::Files,
+                        "icons" => SectionKind::Icons,
+                        "registry" => SectionKind::Registry,
+                        "run" => SectionKind::Run,
+                        _ => SectionKind::Unknown,
+                    };
+                    continue;
+                }
+            }
+
+            match current {
+                SectionKind::Setup | SectionKind::License => {
+                    if let Some((key, value)) = parse_kv_line(line) {
+                        apply_setup_kv(&mut script, &key, &value);
+                    }
+                }
+                SectionKind::Files => {
+                    let fields = parse_semicolon_fields(line);
+                    if let Some(source) = get_ci(&fields, "source") {
+                        script.files.push(FileEntry {
+                            source,
+                            dest_dir: get_ci(&fields, "destdir")
+                                .unwrap_or_else(|| "{app}".to_string()),
+                            dest_name: get_ci(&fields, "destname").unwrap_or_default(),
+                            flags: get_ci(&fields, "flags").unwrap_or_default(),
+                        });
+                    }
+                }
+                SectionKind::Icons => {
+                    let fields = parse_semicolon_fields(line);
+                    if let Some(name) = get_ci(&fields, "name") {
+                        script.icons.push(IconEntry {
+                            name,
+                            filename: get_ci(&fields, "filename").unwrap_or_default(),
+                            parameters: get_ci(&fields, "parameters").unwrap_or_default(),
+                            working_dir: get_ci(&fields, "workingdir").unwrap_or_default(),
+                            icon_file: get_ci(&fields, "iconfile").unwrap_or_default(),
+                        });
+                    }
+                }
+                SectionKind::Registry => {
+                    let fields = parse_semicolon_fields(line);
+                    if let Some(subkey) = get_ci(&fields, "subkey") {
+                        script.registry.push(RegistryEntry {
+                            root: get_ci(&fields, "root").unwrap_or_else(|| "HKCU".to_string()),
+                            subkey,
+                            value_type: get_ci(&fields, "valuetype")
+                                .unwrap_or_else(|| "string".to_string()),
+                            value_name: get_ci(&fields, "valuename").unwrap_or_default(),
+                            value_data: get_ci(&fields, "valuedata").unwrap_or_default(),
+                            flags: get_ci(&fields, "flags").unwrap_or_default(),
+                        });
+                    }
+                }
+                SectionKind::Run => {
+                    let fields = parse_semicolon_fields(line);
+                    if let Some(filename) = get_ci(&fields, "filename") {
+                        script.run.push(RunEntry {
+                            filename,
+                            parameters: get_ci(&fields, "parameters").unwrap_or_default(),
+                            working_dir: get_ci(&fields, "workingdir").unwrap_or_default(),
+                            description: get_ci(&fields, "description").unwrap_or_default(),
+                            flags: get_ci(&fields, "flags").unwrap_or_default(),
+                        });
+                    }
+                }
+                SectionKind::Unknown => {}
+            }
+        }
+
+        Ok(script)
+    }
+}
+
+impl SetupScript {
+    pub fn to_iss_string(&self) -> String {
+        let mut out = String::new();
+        out.push_str("; -- Generated by Trae Installer Creator v3.0 --\r\n\r\n");
+        out.push_str("[Setup]\r\n");
+        out.push_str(&format!("AppName={}\r\n", self.setup.app_name));
+        out.push_str(&format!("AppVersion={}\r\n", self.setup.app_version));
+        out.push_str(&format!("AppPublisher={}\r\n", self.setup.app_publisher));
+        if !self.setup.app_publisher_url.is_empty() {
+            out.push_str(&format!(
+                "AppPublisherURL={}\r\n",
+                self.setup.app_publisher_url
+            ));
+        }
+        out.push_str(&format!(
+            "DefaultDirName={}\r\n",
+            self.setup.default_dir_name
+        ));
+        out.push_str(&format!(
+            "DefaultGroupName={}\r\n",
+            self.setup.default_group_name
+        ));
+        if !self.setup.uninstall_display_icon.is_empty() {
+            out.push_str(&format!(
+                "UninstallDisplayIcon={}\r\n",
+                self.setup.uninstall_display_icon
+            ));
+        }
+        out.push_str(&format!("Compression={}\r\n", self.setup.compression));
+        out.push_str(&format!("OutputDir={}\r\n", self.setup.output_dir));
+        if !self.setup.output_base_filename.is_empty() {
+            out.push_str(&format!(
+                "OutputBaseFilename={}\r\n",
+                self.setup.output_base_filename
+            ));
+        }
+        if !self.setup.privileges_required.is_empty() {
+            out.push_str(&format!(
+                "PrivilegesRequired={}\r\n",
+                self.setup.privileges_required
+            ));
+        }
+        let escaped_license = self
+            .setup
+            .license_text
+            .replace('\r', "")
+            .replace('\n', "\\n");
+        out.push_str(&format!("LicenseText={}\r\n", escaped_license));
+
+        out.push_str("\r\n[Files]\r\n");
+        for f in &self.files {
+            let dest_dir = if f.dest_dir.is_empty() {
+                "{app}"
+            } else {
+                &f.dest_dir
+            };
+            out.push_str(&format!(
+                "Source: \"{}\"; DestDir: \"{}\"",
+                f.source, dest_dir
+            ));
+            if !f.dest_name.is_empty() {
+                out.push_str(&format!("; DestName: \"{}\"", f.dest_name));
+            }
+            if !f.flags.is_empty() {
+                out.push_str(&format!("; Flags: {}", f.flags));
+            }
+            out.push_str("\r\n");
+        }
+
+        out.push_str("\r\n[Icons]\r\n");
+        for icon in &self.icons {
+            out.push_str(&format!(
+                "Name: \"{}\"; Filename: \"{}\"",
+                icon.name, icon.filename
+            ));
+            if !icon.parameters.is_empty() {
+                out.push_str(&format!("; Parameters: \"{}\"", icon.parameters));
+            }
+            if !icon.working_dir.is_empty() {
+                out.push_str(&format!("; WorkingDir: \"{}\"", icon.working_dir));
+            }
+            if !icon.icon_file.is_empty() {
+                out.push_str(&format!("; IconFile: \"{}\"", icon.icon_file));
+            }
+            out.push_str("\r\n");
+        }
+
+        if !self.registry.is_empty() {
+            out.push_str("\r\n[Registry]\r\n");
+            for r in &self.registry {
+                out.push_str(&format!(
+                    "Root: {}; Subkey: \"{}\"; ValueType: {}; ValueName: \"{}\"; ValueData: \"{}\"",
+                    r.root, r.subkey, r.value_type, r.value_name, r.value_data
+                ));
+                if !r.flags.is_empty() {
+                    out.push_str(&format!("; Flags: {}", r.flags));
+                }
+                out.push_str("\r\n");
+            }
+        }
+
+        if !self.run.is_empty() {
+            out.push_str("\r\n[Run]\r\n");
+            for run in &self.run {
+                out.push_str(&format!("Filename: \"{}\"", run.filename));
+                if !run.parameters.is_empty() {
+                    out.push_str(&format!("; Parameters: \"{}\"", run.parameters));
+                }
+                if !run.working_dir.is_empty() {
+                    out.push_str(&format!("; WorkingDir: \"{}\"", run.working_dir));
+                }
+                if !run.description.is_empty() {
+                    out.push_str(&format!("; Description: \"{}\"", run.description));
+                }
+                if !run.flags.is_empty() {
+                    out.push_str(&format!("; Flags: {}", run.flags));
+                }
+                out.push_str("\r\n");
+            }
+        }
+
+        out
+    }
+}
+
+fn parse_kv_line(line: &str) -> Option<(String, String)> {
+    let eq_idx = line.find('=');
+    let colon_idx = line.find(':');
+    let sep_idx = match (eq_idx, colon_idx) {
+        (Some(a), Some(b)) => Some(a.min(b)),
+        (Some(a), None) => Some(a),
+        (None, Some(b)) => Some(b),
+        (None, None) => None,
+    }?;
+
+    let key = line[..sep_idx].trim();
+    if key.is_empty() || !key.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        return None;
+    }
+
+    let raw_val = line[sep_idx + 1..].trim();
+    let val = strip_matching_quotes(raw_val);
+    Some((key.to_string(), val.to_string()))
+}
+
+fn parse_semicolon_fields(line: &str) -> HashMap<String, String> {
+    let mut map = HashMap::new();
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut in_quote: Option<char> = None;
+    let mut escaped = false;
+
+    for ch in line.chars() {
+        if escaped {
+            current.push(ch);
+            escaped = false;
+            continue;
+        }
+        if ch == '\\' && in_quote.is_none() {
+            escaped = true;
+            current.push(ch);
+            continue;
+        }
+        match in_quote {
+            Some(q) if ch == q => {
+                in_quote = None;
+                current.push(ch);
+            }
+            Some(_) => current.push(ch),
+            None if ch == '"' || ch == '\'' => {
+                in_quote = Some(ch);
+                current.push(ch);
+            }
+            None if ch == ';' => {
+                parts.push(current.trim().to_string());
+                current.clear();
+            }
+            None => current.push(ch),
+        }
+    }
+    if !current.trim().is_empty() {
+        parts.push(current.trim().to_string());
+    }
+
+    for part in parts {
+        if let Some((k, v)) = parse_kv_line(&part) {
+            map.insert(k.to_ascii_lowercase(), v);
+        } else if !part.is_empty() {
+            map.insert(part.to_ascii_lowercase(), "yes".to_string());
+        }
+    }
+    map
+}
+
+fn strip_matching_quotes(s: &str) -> &str {
+    if s.len() >= 2
+        && ((s.starts_with('"') && s.ends_with('"')) || (s.starts_with('\'') && s.ends_with('\'')))
+    {
+        &s[1..s.len() - 1]
+    } else {
+        s
+    }
+}
+
+fn get_ci(map: &HashMap<String, String>, key: &str) -> Option<String> {
+    map.get(&key.to_ascii_lowercase()).cloned()
+}
+
+fn apply_setup_kv(script: &mut SetupScript, key: &str, value: &str) {
+    match key.to_ascii_lowercase().as_str() {
+        "appname" => script.setup.app_name = value.to_string(),
+        "appversion" => script.setup.app_version = value.to_string(),
+        "apppublisher" => script.setup.app_publisher = value.to_string(),
+        "apppublisherurl" | "website" => script.setup.app_publisher_url = value.to_string(),
+        "defaultdirname" => script.setup.default_dir_name = value.to_string(),
+        "defaultgroupname" => script.setup.default_group_name = value.to_string(),
+        "uninstalldisplayicon" => script.setup.uninstall_display_icon = value.to_string(),
+        "compression" => script.setup.compression = value.to_string(),
+        "outputdir" => script.setup.output_dir = value.to_string(),
+        "outputbasefilename" => script.setup.output_base_filename = value.to_string(),
+        "privilegesrequired" => script.setup.privileges_required = value.to_string(),
+        "wizardstyle" => script.setup.wizard_style = value.to_string(),
+        "solidcompression" => {
+            script.setup.solid_compression = matches!(
+                value.to_ascii_lowercase().as_str(),
+                "yes" | "true" | "1"
+            );
+        }
+        "licensetext" => {
+            script.setup.license_text = value.replace("\\r", "").replace("\\n", "\n");
+        }
+        _ => {}
+    }
+}

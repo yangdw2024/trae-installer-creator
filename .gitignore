@@ -1,0 +1,10 @@
+target/
+**/*.rs.bk
+__pycache__/
+*.pyc
+tests/test_output*/
+tests/test_install*/
+dist_pypi/
+build/
+*.egg-info/
+npm/*.tgz

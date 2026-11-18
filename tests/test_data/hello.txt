@@ -1,0 +1,2 @@
+Hello, this is a test file for Trae Installer Creator.
+If you see this file, the installer works correctly!

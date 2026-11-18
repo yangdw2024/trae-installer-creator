@@ -1,0 +1,33 @@
+{
+  "name": "@yangdw2024/trae-installer-creator",
+  "version": "3.0.0",
+  "description": "Native Rust single-file Windows installer builder compatible with Inno Setup (.iss) scripts",
+  "bin": {
+    "traecc": "bin/traecc.js",
+    "trae-studio": "bin/trae-studio.js"
+  },
+  "os": ["win32"],
+  "cpu": ["x64"],
+  "keywords": [
+    "installer",
+    "setup",
+    "inno-setup",
+    "windows",
+    "rust",
+    "cli"
+  ],
+  "author": "Trae",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yangdw2024/trae-installer-creator.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "bin/",
+    "README.md",
+    "LICENSE"
+  ]
+}
